@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   BrowserRouter as Router,
@@ -6,37 +5,34 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { io } from "socket.io-client";
-import SocketContext from "./context/SocketContext";
+
+// Context - अब हम अलग से बनाए गए ContextProvider का उपयोग करेंगे
+import { ContextProvider } from "./context/SocketContext";
 
 // Pages
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
-// socket io
-// Check if API_ENDPOINT exists before splitting to avoid white screen crash
-const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT || "http://localhost:8000/api/v1";
-
-const socket = io(API_ENDPOINT.split("/api/v1")[0]);
-
 function App() {
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
   
-  // Safe token extraction to avoid "undefined" errors
+  // Safe token extraction
   const token = user?.token;
 
   return (
     <div className="dark">
-      <SocketContext.Provider value={socket}>
+      {/* Provider को यहाँ लपेटें ताकि पूरे ऐप को सॉकेट और वीडियो कॉल के फंक्शन्स मिल सकें।
+        अब आपको यहाँ अलग से 'socket' डिफाइन करने की ज़रूरत नहीं है।
+      */}
+      <ContextProvider>
         <Router>
           <Routes>
             <Route
               exact
               path="/"
               element={
-                token ? <Home socket={socket} /> : <Navigate to="/login" />
+                token ? <Home /> : <Navigate to="/login" />
               }
             />
             <Route
@@ -51,10 +47,9 @@ function App() {
             />
           </Routes>
         </Router>
-      </SocketContext.Provider>
+      </ContextProvider>
     </div>
   );
 }
 
-// Yeh line sabse zaroori hai exports ke liye
 export default App;
