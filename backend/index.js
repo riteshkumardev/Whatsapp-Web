@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 import "dotenv/config"; // <--- Ye line sabse upar add karein
 
 import { Server } from "socket.io";
-import app from "./app.js";
-import logger from "./configs/logger.config.js";
-import SocketServer from "./SocketServer.js";
+import app from "./src/app.js";
+import logger from "./src/configs/logger.config.js";
+import SocketServer from "./src/SocketServer.js";
 //env variables
 const { DATABASE_URL } = process.env;
 const PORT = process.env.PORT || 8000;
