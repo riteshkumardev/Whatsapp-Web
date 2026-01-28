@@ -1,90 +1,136 @@
 let onlineUsers = [];
 
-export default function (socket, io) {
+export default function socketHandler(socket, io) {
 
-  // user joins
+  /* =========================
+     USER JOIN
+  ========================== */
   socket.on("join", (userId) => {
-    if (!userId) return;
+    try {
+      if (!userId) return;
 
-    socket.join(userId);
+      // join personal room
+      socket.join(userId);
 
-    // remove old socket of same user (important)
-    onlineUsers = onlineUsers.filter(
-      (u) => u.userId !== userId
-    );
+      // remove old socket of same user (page refresh / multi-tab)
+      onlineUsers = onlineUsers.filter(
+        (u) => u.userId !== userId
+      );
 
-    // add fresh socket
-    onlineUsers.push({
-      userId,
-      socketId: socket.id,
-    });
+      // add fresh socket
+      onlineUsers.push({
+        userId,
+        socketId: socket.id,
+      });
 
-    io.emit("get-online-users", onlineUsers);
-    socket.emit("setup socket", socket.id); // only to this user
+      // send updated online users list
+      io.emit("get-online-users", onlineUsers);
+
+      // send socket id only to this user
+      socket.emit("setup socket", socket.id);
+
+    } catch (error) {
+      console.error("JOIN ERROR:", error);
+    }
   });
 
-  // disconnect
+  /* =========================
+     DISCONNECT
+  ========================== */
   socket.on("disconnect", () => {
-    onlineUsers = onlineUsers.filter(
-      (u) => u.socketId !== socket.id
-    );
-    io.emit("get-online-users", onlineUsers);
+    try {
+      onlineUsers = onlineUsers.filter(
+        (u) => u.socketId !== socket.id
+      );
+
+      io.emit("get-online-users", onlineUsers);
+    } catch (error) {
+      console.error("DISCONNECT ERROR:", error);
+    }
   });
 
-  // join conversation room
+  /* =========================
+     JOIN CONVERSATION
+  ========================== */
   socket.on("join conversation", (conversationId) => {
     if (!conversationId) return;
     socket.join(conversationId);
   });
 
-  // send message
+  /* =========================
+     SEND MESSAGE
+  ========================== */
   socket.on("send message", (message) => {
-    const conversation = message?.conversation;
-    if (!conversation?.users) return;
+    try {
+      const conversation = message?.conversation;
+      if (!conversation?.users) return;
 
-    conversation.users.forEach((user) => {
-      if (user._id === message.sender._id) return;
-      socket.to(user._id).emit("receive message", message);
-    });
+      conversation.users.forEach((user) => {
+        if (user._id === message.sender?._id) return;
+
+        socket.to(user._id).emit("receive message", message);
+      });
+    } catch (error) {
+      console.error("SEND MESSAGE ERROR:", error);
+    }
   });
 
-  // typing
+  /* =========================
+     TYPING EVENTS
+  ========================== */
   socket.on("typing", (conversationId) => {
+    if (!conversationId) return;
     socket.to(conversationId).emit("typing");
   });
 
   socket.on("stop typing", (conversationId) => {
+    if (!conversationId) return;
     socket.to(conversationId).emit("stop typing");
   });
 
-  // call user
+  /* =========================
+     CALL USER
+  ========================== */
   socket.on("call user", (data) => {
-    const userSocket = onlineUsers.find(
-      (u) => u.userId === data.userToCall
-    );
+    try {
+      if (!data?.userToCall) return;
 
-    if (!userSocket) {
-      socket.emit("user offline");
-      return;
+      const userSocket = onlineUsers.find(
+        (u) => u.userId === data.userToCall
+      );
+
+      if (!userSocket) {
+        socket.emit("user offline");
+        return;
+      }
+
+      io.to(userSocket.socketId).emit("call user", {
+        signal: data.signal,
+        from: data.from,
+        name: data.name,
+        picture: data.picture,
+      });
+
+    } catch (error) {
+      console.error("CALL USER ERROR:", error);
     }
-
-    io.to(userSocket.socketId).emit("call user", {
-      signal: data.signal,
-      from: data.from,
-      name: data.name,
-      picture: data.picture,
-    });
   });
 
-  // answer call
+  /* =========================
+     ANSWER CALL
+  ========================== */
   socket.on("answer call", (data) => {
-    if (!data?.to) return;
+    if (!data?.to || !data?.signal) return;
+
     io.to(data.to).emit("call accepted", data.signal);
   });
 
-  // end call
+  /* =========================
+     END CALL
+  ========================== */
   socket.on("end call", (socketId) => {
     if (!socketId) return;
+
     io.to(socketId).emit("end call");
   });
 }
