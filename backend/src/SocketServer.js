@@ -2,6 +2,13 @@ let onlineUsers = [];
 
 export default function socketHandler(socket, io) {
 
+
+  io = new Server(server, {
+  cors: {
+    origin: "https://whatsappweb-gilt.vercel.app",
+    credentials: true,
+  },
+});
   /* =========================
      USER JOIN
   ========================== */
