@@ -72,4 +72,5 @@ app.use(async (err, req, res, next) => {
   });
 });
 
-export default app;
+// export default app;
+module.exports = app;
