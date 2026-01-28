@@ -3,12 +3,18 @@ import { io } from "socket.io-client";
 import Peer from "simple-peer";
 
 const SocketContext = createContext();
-const socket = io(process.env.REACT_APP_SOCKET_URL) || io("http://localhost:8000"); 
+
+// --- मुख्य बदलाव: Socket Initialization ---
+// || के बाद वाला हिस्सा हटा दिया गया है ताकि सिर्फ Environment Variable का उपयोग हो
+const socket = io(process.env.REACT_APP_SOCKET_URL, {
+  transports: ["websocket", "polling"],
+  withCredentials: true,
+});
 
 export const ContextProvider = ({ children }) => {
   const [callAccepted, setCallAccepted] = useState(false);
   const [callEnded, setCallEnded] = useState(false);
-  const [stream, setStream] = useState(null); // Initial null rakhein
+  const [stream, setStream] = useState(null);
   const [name, setName] = useState("");
   const [call, setCall] = useState({});
   const [me, setMe] = useState("");
@@ -17,7 +23,6 @@ export const ContextProvider = ({ children }) => {
   const userVideo = useRef();
   const connectionRef = useRef();
 
-  // --- NEW: Camera setup function ---
   const setupMedia = async () => {
     try {
       const currentStream = await navigator.mediaDevices.getUserMedia({
@@ -35,14 +40,23 @@ export const ContextProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // सॉकेट कनेक्शन की पुष्टि के लिए लॉग्स (जरूरी नहीं, पर टेस्टिंग के लिए अच्छे हैं)
+    socket.on("connect", () => console.log("Connected to socket:", socket.id));
+    
     socket.on("me", (id) => setMe(id));
+    
     socket.on("callUser", ({ from, name: callerName, signal }) => {
       setCall({ isReceivingCall: true, from, name: callerName, signal });
     });
+
+    // Cleanup on unmount
+    return () => {
+      socket.off("me");
+      socket.off("callUser");
+    };
   }, []);
 
   const answerCall = async () => {
-    // Call accept karte hi camera on karein
     const localStream = await setupMedia(); 
     setCallAccepted(true);
 
@@ -53,7 +67,9 @@ export const ContextProvider = ({ children }) => {
     });
 
     peer.on("stream", (remoteStream) => {
-      userVideo.current.srcObject = remoteStream;
+      if (userVideo.current) {
+        userVideo.current.srcObject = remoteStream;
+      }
     });
 
     peer.signal(call.signal);
@@ -61,7 +77,6 @@ export const ContextProvider = ({ children }) => {
   };
 
   const callUser = async (id) => {
-    // Call dial karte hi camera on karein
     const localStream = await setupMedia(); 
 
     const peer = new Peer({ initiator: true, trickle: false, stream: localStream });
@@ -71,7 +86,9 @@ export const ContextProvider = ({ children }) => {
     });
 
     peer.on("stream", (remoteStream) => {
-      userVideo.current.srcObject = remoteStream;
+      if (userVideo.current) {
+        userVideo.current.srcObject = remoteStream;
+      }
     });
 
     socket.on("callAccepted", (signal) => {
@@ -84,7 +101,6 @@ export const ContextProvider = ({ children }) => {
 
   const leaveCall = () => {
     setCallEnded(true);
-    // Camera ko band karne ke liye tracks stop karein
     if (stream) {
       stream.getTracks().forEach((track) => track.stop());
     }
@@ -109,7 +125,7 @@ export const ContextProvider = ({ children }) => {
       callUser,
       leaveCall,
       answerCall,
-      setupMedia, // Component mein use karne ke liye export kiya
+      setupMedia,
     }}>
       {children}
     </SocketContext.Provider>
