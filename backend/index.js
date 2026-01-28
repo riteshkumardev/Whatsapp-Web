@@ -1,48 +1,54 @@
 import mongoose from "mongoose";
-import "dotenv/config"; // <--- Ye line sabse upar add karein
+import "dotenv/config"; 
 
 import { Server } from "socket.io";
 import app from "./src/app.js";
 import logger from "./src/configs/logger.config.js";
 import SocketServer from "./src/SocketServer.js";
-//env variables
+
+// Env variables
 const { DATABASE_URL } = process.env;
 const PORT = process.env.PORT || 8000;
 
-//exit on mognodb error
+// Exit on mongodb error
 mongoose.connection.on("error", (err) => {
   logger.error(`Mongodb connection error : ${err}`);
   process.exit(1);
 });
 
-//mongodb debug mode
+// Mongodb debug mode
 if (process.env.NODE_ENV !== "production") {
   mongoose.set("debug", true);
 }
 
-//mongodb connection
+// Mongodb connection
 mongoose.connect(DATABASE_URL).then(() => {
   logger.info("Connected to Mongodb.");
 });
+
 let server;
 
-server = app.listen(PORT, () => {
-  logger.info(`Server is listening at ${PORT}.`);
-});
+// Vercel handles the server in production, so app.listen is for local dev only
+if (process.env.NODE_ENV !== "production") {
+  server = app.listen(PORT, () => {
+    logger.info(`Server is listening at ${PORT}.`);
+  });
+}
 
-//socket io
+// Socket.io setup (Note: Vercel serverless may have issues with persistent sockets)
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
     origin: process.env.CLIENT_ENDPOINT,
   },
 });
+
 io.on("connection", (socket) => {
   logger.info("socket io connected successfully.");
   SocketServer(socket, io);
 });
 
-//handle server errors
+// Handle server errors
 const exitHandler = () => {
   if (server) {
     logger.info("Server closed.");
@@ -56,14 +62,17 @@ const unexpectedErrorHandler = (error) => {
   logger.error(error);
   exitHandler();
 };
+
 process.on("uncaughtException", unexpectedErrorHandler);
 process.on("unhandledRejection", unexpectedErrorHandler);
 
-//SIGTERM
+// SIGTERM
 process.on("SIGTERM", () => {
   if (server) {
     logger.info("Server closed.");
     process.exit(1);
   }
 });
+
+// Vercel entry point requirement
 export default app;
