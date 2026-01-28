@@ -45,10 +45,10 @@ app.use(
   })
 );
 
-// ✅ CORS (IMPORTANT FIX)
+// CORS
 app.use(
   cors({
-    origin: process.env.CLIENT_ENDPOINT, // frontend URL
+    origin: process.env.CLIENT_ENDPOINT,
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })
@@ -60,7 +60,7 @@ app.options("*", cors());
 // Routes
 app.use("/api/v1", routes);
 
-// Health check (optional but useful)
+// Health check
 app.get("/", (req, res) => {
   res.json({ status: "API running 🚀" });
 });
