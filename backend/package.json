@@ -4,11 +4,10 @@
   "main": "index.js",
   "license": "MIT",
   "type": "module",
-"scripts": {
-  "start": "node index.js",
-  "dev": "cross-env NODE_ENV=development nodemon index.js",
-  "build": "CI=false react-scripts build"
-},
+  "scripts": {
+    "start": "node index.js",
+    "dev": "cross-env NODE_ENV=development nodemon index.js"
+  },
   "dependencies": {
     "bcrypt": "^5.1.0",
     "compression": "^1.7.4",
@@ -24,10 +23,12 @@
     "jsonwebtoken": "^9.0.0",
     "mongoose": "^7.0.0",
     "morgan": "^1.10.0",
-    "nodemon": "^2.0.21",
     "socket.io": "^4.6.1",
     "trim-request": "^1.0.6",
     "validator": "^13.9.0",
     "winston": "^3.8.2"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.21"
   }
 }
