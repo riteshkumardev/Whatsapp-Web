@@ -10,64 +10,72 @@ import cors from "cors";
 import createHttpError from "http-errors";
 import routes from "./routes/index.js";
 
-//dotEnv config
+// Load env variables
 dotenv.config();
 
-//create express app
+// Create express app
 const app = express();
 
-//morgan
+// Logger (only in dev)
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-//helmet
+// Security headers
 app.use(helmet());
 
-//parse json request url
-app.use(express.json());
-
-//parse json request body
+// Body parser
+app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 
-//sanitize request data
+// Sanitize mongo queries
 app.use(mongoSanitize());
 
-//enable cookie parser
+// Cookies
 app.use(cookieParser());
 
-//gzip compression
+// Compression
 app.use(compression());
 
-//file upload
+// File upload
 app.use(
   fileUpload({
     useTempFiles: true,
+    tempFileDir: "/tmp/",
   })
 );
 
-//cors
+// ✅ CORS (IMPORTANT FIX)
 app.use(
   cors({
-    origin: "https://whatsappbackend-six.vercel.app/",
+    origin: process.env.CLIENT_ENDPOINT, // frontend URL
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   })
 );
 
-//api v1 routes
+// Handle preflight
+app.options("*", cors());
+
+// Routes
 app.use("/api/v1", routes);
 
-app.use(async (req, res, next) => {
-  next(createHttpError.NotFound("This route does not exist."));
+// Health check (optional but useful)
+app.get("/", (req, res) => {
+  res.json({ status: "API running 🚀" });
 });
 
-//error handling
-app.use(async (err, req, res, next) => {
-  res.status(err.status || 500);
-  res.send({
+// 404 handler
+app.use((req, res, next) => {
+  next(createHttpError(404, "This route does not exist."));
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  res.status(err.status || 500).json({
     error: {
       status: err.status || 500,
-      message: err.message,
+      message: err.message || "Internal Server Error",
     },
   });
 });
