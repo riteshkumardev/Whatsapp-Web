@@ -1,9 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-// यह पक्का करता है कि Vercel पर डला URL ही इस्तेमाल हो, और बैकअप के लिए लाइव URL भी है
-const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://whatsappbackend-six.vercel.app/api/v1";
-const AUTH_ENDPOINT = `${BASE_URL}/auth`;
+const AUTH_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/auth`;
 
 const initialState = {
   status: "",
@@ -18,7 +16,6 @@ const initialState = {
   },
 };
 
-// User Registration Action
 export const registerUser = createAsyncThunk(
   "auth/register",
   async (values, { rejectWithValue }) => {
@@ -28,13 +25,10 @@ export const registerUser = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      // सुरक्षित तरीके से एरर मैसेज निकालता है
-      return rejectWithValue(error.response?.data?.error?.message || "Registration failed");
+      return rejectWithValue(error.response.data.error.message);
     }
   }
 );
-
-// User Login Action
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (values, { rejectWithValue }) => {
@@ -44,7 +38,7 @@ export const loginUser = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.error?.message || "Login failed");
+      return rejectWithValue(error.response.data.error.message);
     }
   }
 );
@@ -56,7 +50,14 @@ export const userSlice = createSlice({
     logout: (state) => {
       state.status = "";
       state.error = "";
-      state.user = initialState.user;
+      state.user = {
+        id: "",
+        name: "",
+        email: "",
+        picture: "",
+        status: "",
+        token: "",
+      };
     },
     changeStatus: (state, action) => {
       state.status = action.payload;
@@ -64,8 +65,7 @@ export const userSlice = createSlice({
   },
   extraReducers(builder) {
     builder
-      // Register Reducers
-      .addCase(registerUser.pending, (state) => {
+      .addCase(registerUser.pending, (state, action) => {
         state.status = "loading";
       })
       .addCase(registerUser.fulfilled, (state, action) => {
@@ -77,8 +77,7 @@ export const userSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
-      // Login Reducers
-      .addCase(loginUser.pending, (state) => {
+      .addCase(loginUser.pending, (state, action) => {
         state.status = "loading";
       })
       .addCase(loginUser.fulfilled, (state, action) => {
@@ -94,4 +93,5 @@ export const userSlice = createSlice({
 });
 
 export const { logout, changeStatus } = userSlice.actions;
+
 export default userSlice.reducer;

@@ -1,68 +1,56 @@
 import { useEffect, useState } from "react";
 import { CloseIcon, ValidIcon } from "../../../svg";
-
 export default function Ringing({ call, setCall, answerCall, endCall }) {
-  const { name, picture } = call;
+  const { receiveingCall, callEnded, name, picture } = call;
   const [timer, setTimer] = useState(0);
-
-  // WhatsApp style: Sahi timer logic bina memory leak ke
-  useEffect(() => {
-    const interval = setInterval(() => {
+  let interval;
+  const handleTimer = () => {
+    interval = setInterval(() => {
       setTimer((prev) => prev + 1);
     }, 1000);
-
-    if (timer > 30) {
-      endCall(); // 30 sec baad auto-reject
+  };
+  console.log(timer);
+  useEffect(() => {
+    if (timer <= 30) {
+      handleTimer();
+    } else {
+      setCall({ ...call, receiveingCall: false });
     }
-
-    return () => clearInterval(interval); // Cleanup zaroori hai
+    return () => clearInterval(interval);
   }, [timer]);
-
   return (
-    <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[550px] z-50 rounded-2xl overflow-hidden callbg shadow-2xl flex flex-col items-center justify-between py-12 transition-all duration-500">
-      
-      {/* Caller Info Section */}
-      <div className="flex flex-col items-center gap-y-6">
-        <div className="relative">
+    <div className="dark:bg-dark_bg_1 rounded-lg fixed  top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 shadow-lg z-30">
+      {/*Container*/}
+      <div className="p-4 flex items-center justify-between gap-x-8">
+        {/*Call infos*/}
+        <div className="flex items-center gap-x-2">
           <img
-            src={picture || "../../../../images/default_profile.png"}
-            alt="caller"
-            className="w-32 h-32 rounded-full object-cover border-4 border-green_1 shadow-xl"
+            src={picture}
+            alt={`caller profile picture`}
+            className="w-28 h-28 rounded-full"
           />
-          {/* Ringing pulse animation */}
-          <div className="absolute inset-0 rounded-full border-4 border-green_1 animate-ping opacity-25"></div>
+          <div>
+            <h1 className="dark:text-white">
+              <b>{name}</b>
+            </h1>
+            <span className="dark:text-dark_text_2">Whatsapp video...</span>
+          </div>
         </div>
-        
-        <div className="text-center">
-          <h1 className="text-white text-2xl font-bold mb-2">
-            {name}
-          </h1>
-          <span className="text-dark_text_1 text-lg animate-pulse">
-            WhatsApp video call...
-          </span>
-        </div>
+        {/*Call actions*/}
+        <ul className="flex items-center gap-x-2">
+          <li onClick={endCall}>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-red-500">
+              <CloseIcon className="fill-white w-5" />
+            </button>
+          </li>
+          <li onClick={answerCall}>
+            <button className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500">
+              <ValidIcon className="fill-white w-6 mt-2" />
+            </button>
+          </li>
+        </ul>
       </div>
-
-      {/* Action Buttons Section */}
-      <ul className="flex items-center gap-x-14">
-        {/* Decline Button */}
-        <li onClick={endCall}>
-          <button className="w-16 h-16 flex items-center justify-center rounded-full bg-red-500 hover:bg-red-600 shadow-lg active:scale-90 transition-transform">
-            <CloseIcon className="fill-white w-8" />
-          </button>
-          <p className="text-white text-center mt-2 text-sm">Decline</p>
-        </li>
-
-        {/* Accept Button */}
-        <li onClick={answerCall}>
-          <button className="w-16 h-16 flex items-center justify-center rounded-full bg-green-500 hover:bg-green-600 shadow-lg animate-bounce active:scale-90 transition-transform">
-            <ValidIcon className="fill-white w-10 mt-1" />
-          </button>
-          <p className="text-white text-center mt-2 text-sm">Accept</p>
-        </li>
-      </ul>
-
-      {/* Ringtone */}
+      {/*Ringtone*/}
       <audio src="../../../../audio/ringtone.mp3" autoPlay loop></audio>
     </div>
   );
