@@ -16,7 +16,8 @@ import Register from "./pages/register";
 
 // socket io
 // Check if API_ENDPOINT exists before splitting to avoid white screen crash
-const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT || "http://localhost:5000/api/v1";
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT || "http://localhost:8000/api/v1";
+
 const socket = io(API_ENDPOINT.split("/api/v1")[0]);
 
 function App() {
