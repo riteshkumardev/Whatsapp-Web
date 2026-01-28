@@ -16,20 +16,26 @@ import Register from "./pages/register";
 // ✅ API endpoint
 const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT;
 
+
+
+const SOCKET_URL = API_ENDPOINT
+  ? API_ENDPOINT.replace("/api/v1", "")
+  : "https://whatsappbackend-six.vercel.app";
+
+const socket = io(SOCKET_URL, {
+  withCredentials: true,
+  transports: ["websocket"],
+});
+
+
+
 // 🔐 safety check
 if (!API_ENDPOINT) {
   console.error("❌ REACT_APP_API_ENDPOINT missing in .env");
 }
 
 // ✅ derive socket base url safely
-const SOCKET_URL = API_ENDPOINT
-  ? API_ENDPOINT.replace("/api/v1", "")
-  : "";
 
-const socket = io(SOCKET_URL, {
-  withCredentials: true,
-  transports: ["websocket"],
-});
 
 function App() {
   const { user } = useSelector((state) => state.user || {});
