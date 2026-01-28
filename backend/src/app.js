@@ -10,65 +10,59 @@ import cors from "cors";
 import createHttpError from "http-errors";
 import routes from "./routes/index.js";
 
-// dotEnv config
+//dotEnv config
 dotenv.config();
 
+//create express app
 const app = express();
 
-// Morgan for logging
+//morgan
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// --- 1. Updated CORS Configuration ---
-app.use(
-  cors({
-    origin: process.env.CLIENT_ENDPOINT, // Ensure this is "https://whatsappweb-gilt.vercel.app"
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+//helmet
+app.use(helmet());
 
-// --- 2. Security Middlewares (Improved for Vercel/Chrome) ---
-// Helmet का default config कभी-कभी cross-origin requests को ब्लॉक कर देता है
-app.use(
-  helmet({
-    crossOriginResourcePolicy: false,
-    crossOriginEmbedderPolicy: false,
-  })
-);
-
+//parse json request url
 app.use(express.json());
+
+//parse json request body
 app.use(express.urlencoded({ extended: true }));
+
+//sanitize request data
 app.use(mongoSanitize());
+
+//enable cookie parser
 app.use(cookieParser());
+
+//gzip compression
 app.use(compression());
+
+//file upload
 app.use(
   fileUpload({
     useTempFiles: true,
   })
 );
 
-// --- 3. Routes ---
+//cors
+app.use(
+  cors({
+    origin: "https://whatsappbackend-six.vercel.app/",
+    credentials: true,
+  })
+);
 
-// Root Route
-app.get("/", (req, res) => {
-  res.status(200).json({ message: "WhatsApp Backend is running!" });
-});
-
-// API Routes
+//api v1 routes
 app.use("/api/v1", routes);
 
-// --- 4. Error Handling ---
-
-// 404 Error Handling
 app.use(async (req, res, next) => {
   next(createHttpError.NotFound("This route does not exist."));
 });
 
-// Global Error Handling
-app.use((err, req, res, next) => {
+//error handling
+app.use(async (err, req, res, next) => {
   res.status(err.status || 500);
   res.send({
     error: {
