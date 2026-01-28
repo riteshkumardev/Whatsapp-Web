@@ -10,43 +10,30 @@ import cors from "cors";
 import createHttpError from "http-errors";
 import routes from "./routes/index.js";
 
-//dotEnv config
+// dotEnv config
 dotenv.config();
 
-//create express app
 const app = express();
 
-//morgan
+// Morgan for logging
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-//helmet
+// Middlewares
 app.use(helmet());
-
-//parse json request url
 app.use(express.json());
-
-//parse json request body
 app.use(express.urlencoded({ extended: true }));
-
-//sanitize request data
 app.use(mongoSanitize());
-
-//enable cookie parser
 app.use(cookieParser());
-
-//gzip compression
 app.use(compression());
-
-//file upload
 app.use(
   fileUpload({
     useTempFiles: true,
   })
 );
 
-//cors
+// CORS configuration
 app.use(
   cors({
     origin: process.env.CLIENT_ENDPOINT || "http://localhost:3000",
@@ -54,15 +41,23 @@ app.use(
   })
 );
 
-//api v1 routes
+// --- मुख्य बदलाव यहाँ है ---
+
+// 1. Root Route (Testing के लिए)
+app.get("/", (req, res) => {
+  res.status(200).json({ message: "WhatsApp Backend is running!" });
+});
+
+// 2. API Routes
 app.use("/api/v1", routes);
 
+// 3. 404 Error Handling
 app.use(async (req, res, next) => {
   next(createHttpError.NotFound("This route does not exist."));
 });
 
-//error handling
-app.use(async (err, req, res, next) => {
+// 4. Global Error Handling
+app.use((err, req, res, next) => {
   res.status(err.status || 500);
   res.send({
     error: {
