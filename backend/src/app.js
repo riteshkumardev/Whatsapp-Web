@@ -20,19 +20,25 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// --- 1. CORS Configuration (सबसे ज़रूरी बदलाव) ---
-// इसे बाकी रूट्स से पहले रखना अनिवार्य है
+// --- 1. Updated CORS Configuration ---
 app.use(
   cors({
-    origin: process.env.CLIENT_ENDPOINT, // यह Vercel पर डला URL उठाएगा
+    origin: process.env.CLIENT_ENDPOINT, // Ensure this is "https://whatsappweb-gilt.vercel.app"
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// --- 2. Security & Parsing Middlewares ---
-app.use(helmet());
+// --- 2. Security Middlewares (Improved for Vercel/Chrome) ---
+// Helmet का default config कभी-कभी cross-origin requests को ब्लॉक कर देता है
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(mongoSanitize());
@@ -46,7 +52,7 @@ app.use(
 
 // --- 3. Routes ---
 
-// Root Route (Testing के लिए)
+// Root Route
 app.get("/", (req, res) => {
   res.status(200).json({ message: "WhatsApp Backend is running!" });
 });
