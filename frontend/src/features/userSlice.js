@@ -1,7 +1,10 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const AUTH_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/auth`;
+// समस्या यहाँ थी: 'REACT_APP_API_ENDPOINT' की जगह 'REACT_APP_BACKEND_URL' का उपयोग करें
+// साथ ही 'undefined' से बचने के लिए एक fallback URL भी जोड़ें
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://whatsappbackend-six.vercel.app/api/v1";
+const AUTH_ENDPOINT = `${BASE_URL}/auth`;
 
 const initialState = {
   status: "",
@@ -25,10 +28,12 @@ export const registerUser = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      // Error handling को और सुरक्षित बनाया गया
+      return rejectWithValue(error.response?.data?.error?.message || "Registration failed");
     }
   }
 );
+
 export const loginUser = createAsyncThunk(
   "auth/login",
   async (values, { rejectWithValue }) => {
@@ -38,7 +43,7 @@ export const loginUser = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Login failed");
     }
   }
 );
@@ -50,14 +55,7 @@ export const userSlice = createSlice({
     logout: (state) => {
       state.status = "";
       state.error = "";
-      state.user = {
-        id: "",
-        name: "",
-        email: "",
-        picture: "",
-        status: "",
-        token: "",
-      };
+      state.user = initialState.user;
     },
     changeStatus: (state, action) => {
       state.status = action.payload;
@@ -65,7 +63,7 @@ export const userSlice = createSlice({
   },
   extraReducers(builder) {
     builder
-      .addCase(registerUser.pending, (state, action) => {
+      .addCase(registerUser.pending, (state) => {
         state.status = "loading";
       })
       .addCase(registerUser.fulfilled, (state, action) => {
@@ -77,7 +75,7 @@ export const userSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
-      .addCase(loginUser.pending, (state, action) => {
+      .addCase(loginUser.pending, (state) => {
         state.status = "loading";
       })
       .addCase(loginUser.fulfilled, (state, action) => {
@@ -93,5 +91,4 @@ export const userSlice = createSlice({
 });
 
 export const { logout, changeStatus } = userSlice.actions;
-
 export default userSlice.reducer;

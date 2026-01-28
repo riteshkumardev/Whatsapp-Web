@@ -1,8 +1,11 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const CONVERSATION_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/conversation`;
-const MESSAGE_ENDPOINT = `${process.env.REACT_APP_API_ENDPOINT}/message`;
+// यहाँ पक्का करें कि यह वही वेरिएबल है जो Vercel पर मौजूद है
+const BASE_URL = process.env.REACT_APP_BACKEND_URL || "https://whatsappbackend-six.vercel.app/api/v1";
+
+const CONVERSATION_ENDPOINT = `${BASE_URL}/conversation`;
+const MESSAGE_ENDPOINT = `${BASE_URL}/message`;
 
 const initialState = {
   status: "",
@@ -14,7 +17,7 @@ const initialState = {
   files: [],
 };
 
-//functions
+// Functions
 export const getConversations = createAsyncThunk(
   "conervsation/all",
   async (token, { rejectWithValue }) => {
@@ -26,10 +29,11 @@ export const getConversations = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Could not fetch conversations");
     }
   }
 );
+
 export const open_create_conversation = createAsyncThunk(
   "conervsation/open_create",
   async (values, { rejectWithValue }) => {
@@ -46,10 +50,11 @@ export const open_create_conversation = createAsyncThunk(
       );
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Could not open conversation");
     }
   }
 );
+
 export const getConversationMessages = createAsyncThunk(
   "conervsation/messages",
   async (values, { rejectWithValue }) => {
@@ -62,10 +67,11 @@ export const getConversationMessages = createAsyncThunk(
       });
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Could not load messages");
     }
   }
 );
+
 export const sendMessage = createAsyncThunk(
   "message/send",
   async (values, { rejectWithValue }) => {
@@ -86,10 +92,11 @@ export const sendMessage = createAsyncThunk(
       );
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Message failed to send");
     }
   }
 );
+
 export const createGroupConversation = createAsyncThunk(
   "conervsation/create_group",
   async (values, { rejectWithValue }) => {
@@ -106,10 +113,11 @@ export const createGroupConversation = createAsyncThunk(
       );
       return data;
     } catch (error) {
-      return rejectWithValue(error.response.data.error.message);
+      return rejectWithValue(error.response?.data?.error?.message || "Group creation failed");
     }
   }
 );
+
 export const chatSlice = createSlice({
   name: "chat",
   initialState,
@@ -118,12 +126,12 @@ export const chatSlice = createSlice({
       state.activeConversation = action.payload;
     },
     updateMessagesAndConversations: (state, action) => {
-      //update messages
+      // Update messages
       let convo = state.activeConversation;
       if (convo._id === action.payload.conversation._id) {
         state.messages = [...state.messages, action.payload];
       }
-      //update conversations
+      // Update conversations
       let conversation = {
         ...action.payload.conversation,
         latestMessage: action.payload,
@@ -137,19 +145,17 @@ export const chatSlice = createSlice({
     addFiles: (state, action) => {
       state.files = [...state.files, action.payload];
     },
-    clearFiles: (state, action) => {
+    clearFiles: (state) => {
       state.files = [];
     },
     removeFileFromFiles: (state, action) => {
       let index = action.payload;
-      let files = [...state.files];
-      let fileToRemove = [files[index]];
-      state.files = files.filter((file) => !fileToRemove.includes(file));
+      state.files = state.files.filter((_, i) => i !== index);
     },
   },
   extraReducers(builder) {
     builder
-      .addCase(getConversations.pending, (state, action) => {
+      .addCase(getConversations.pending, (state) => {
         state.status = "loading";
       })
       .addCase(getConversations.fulfilled, (state, action) => {
@@ -160,31 +166,14 @@ export const chatSlice = createSlice({
         state.status = "failed";
         state.error = action.payload;
       })
-      .addCase(open_create_conversation.pending, (state, action) => {
-        state.status = "loading";
-      })
       .addCase(open_create_conversation.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.activeConversation = action.payload;
         state.files = [];
       })
-      .addCase(open_create_conversation.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
-      })
-      .addCase(getConversationMessages.pending, (state, action) => {
-        state.status = "loading";
-      })
       .addCase(getConversationMessages.fulfilled, (state, action) => {
         state.status = "succeeded";
         state.messages = action.payload;
-      })
-      .addCase(getConversationMessages.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
-      })
-      .addCase(sendMessage.pending, (state, action) => {
-        state.status = "loading";
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.status = "succeeded";
@@ -199,13 +188,10 @@ export const chatSlice = createSlice({
         newConvos.unshift(conversation);
         state.conversations = newConvos;
         state.files = [];
-      })
-      .addCase(sendMessage.rejected, (state, action) => {
-        state.status = "failed";
-        state.error = action.payload;
       });
   },
 });
+
 export const {
   setActiveConversation,
   updateMessagesAndConversations,
