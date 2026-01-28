@@ -14,15 +14,17 @@ mongoose.connection.on("error", (err) => {
   logger.error(`Mongodb connection error : ${err}`);
 });
 
-// Production में debug mode बंद रखें
 if (NODE_ENV !== "production") {
   mongoose.set("debug", true);
 }
 
-// Database Connection function
+// Database Connection function (With buffering check)
 const connectDB = async () => {
   try {
-    // serverless में कनेक्शन को मैनेज करने के लिए await ज़रूरी है
+    // Serverless में कनेक्शन को दोबारा इस्तेमाल करने के लिए check
+    if (mongoose.connection.readyState === 1) {
+      return mongoose.connection.asPromise();
+    }
     await mongoose.connect(DATABASE_URL);
     logger.info("Connected to Mongodb.");
   } catch (err) {
@@ -40,12 +42,11 @@ if (NODE_ENV !== "production") {
     logger.info(`Server is listening at ${PORT}.`);
   });
 } else {
-  // प्रोडक्शन में 'app' ही हमारा 'server' बेस बनेगा
+  // प्रोडक्शन में 'app' ही 'server' ऑब्जेक्ट की तरह काम करेगा
   server = app;
 }
 
 // Socket.io setup
-// पक्का करें कि origin में आपका Frontend Vercel URL है
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: {
@@ -53,6 +54,7 @@ const io = new Server(server, {
     methods: ["GET", "POST"],
     credentials: true,
   },
+  // Vercel पर कभी-कभी custom path की ज़रूरत पड़ती है, डिफ़ॉल्ट '/socket.io' ही रहता है
 });
 
 io.on("connection", (socket) => {
@@ -60,27 +62,16 @@ io.on("connection", (socket) => {
   SocketServer(socket, io);
 });
 
-// Error Handlers (Cleaned)
-const exitHandler = () => {
-  if (server && NODE_ENV !== "production") {
-    server.close(() => {
-      logger.info("Server closed.");
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
-};
-
+// Error Handlers
 process.on("uncaughtException", (error) => {
   logger.error("Uncaught Exception:", error);
-  exitHandler();
+  if (NODE_ENV !== "production") process.exit(1);
 });
 
 process.on("unhandledRejection", (error) => {
   logger.error("Unhandled Rejection:", error);
-  exitHandler();
+  if (NODE_ENV !== "production") process.exit(1);
 });
 
-// Vercel entry point requirement
+// Vercel requirement: Export the app
 export default app;
