@@ -1,4 +1,4 @@
-import { useDispatch, useSelector } from "react-redux";
+import { useSelector } from "react-redux";
 import {
   BrowserRouter as Router,
   Routes,
@@ -13,22 +13,25 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Register from "./pages/register";
 
-// ✅ SOCKET URL FROM ENV (Vite)
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL;
+// ✅ API endpoint
+const API_ENDPOINT = process.env.REACT_APP_API_ENDPOINT;
 
-// Safety check
-if (!SOCKET_URL) {
-  console.error("❌ VITE_SOCKET_URL is not defined in env");
+// 🔐 safety check
+if (!API_ENDPOINT) {
+  console.error("❌ REACT_APP_API_ENDPOINT missing in .env");
 }
 
-// ✅ socket instance
+// ✅ derive socket base url safely
+const SOCKET_URL = API_ENDPOINT
+  ? API_ENDPOINT.replace("/api/v1", "")
+  : "";
+
 const socket = io(SOCKET_URL, {
   withCredentials: true,
   transports: ["websocket"],
 });
 
 function App() {
-  const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user || {});
   const token = user?.token;
 
