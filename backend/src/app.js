@@ -20,7 +20,18 @@ if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// Middlewares
+// --- 1. CORS Configuration (सबसे ज़रूरी बदलाव) ---
+// इसे बाकी रूट्स से पहले रखना अनिवार्य है
+app.use(
+  cors({
+    origin: process.env.CLIENT_ENDPOINT, // यह Vercel पर डला URL उठाएगा
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// --- 2. Security & Parsing Middlewares ---
 app.use(helmet());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -33,30 +44,24 @@ app.use(
   })
 );
 
-// CORS configuration
-app.use(
-  cors({
-    origin: process.env.CLIENT_ENDPOINT || "http://localhost:3000",
-    credentials: true,
-  })
-);
+// --- 3. Routes ---
 
-// --- मुख्य बदलाव यहाँ है ---
-
-// 1. Root Route (Testing के लिए)
+// Root Route (Testing के लिए)
 app.get("/", (req, res) => {
   res.status(200).json({ message: "WhatsApp Backend is running!" });
 });
 
-// 2. API Routes
+// API Routes
 app.use("/api/v1", routes);
 
-// 3. 404 Error Handling
+// --- 4. Error Handling ---
+
+// 404 Error Handling
 app.use(async (req, res, next) => {
   next(createHttpError.NotFound("This route does not exist."));
 });
 
-// 4. Global Error Handling
+// Global Error Handling
 app.use((err, req, res, next) => {
   res.status(err.status || 500);
   res.send({
